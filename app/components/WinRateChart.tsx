@@ -2,6 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { TrendingUp } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 
 type WinRateData = {
   correct: number;
@@ -10,10 +14,7 @@ type WinRateData = {
   percentage: number;
 };
 
-const COLORS = {
-  correct: '#059669',
-  incorrect: '#dc2626',
-};
+const COLORS = { correct: '#10b981', incorrect: '#f43f5e' };
 
 export function WinRateChart() {
   const [data, setData] = useState<WinRateData | null>(null);
@@ -28,86 +29,67 @@ export function WinRateChart() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="h-full min-h-[200px] animate-pulse rounded-2xl border border-slate-200 bg-white" />
-    );
+    return <Card className="h-full min-h-[180px] animate-pulse" />;
   }
 
   if (!data || data.total === 0) {
     return (
-      <div className="flex h-full min-h-[200px] items-center justify-center rounded-2xl border border-slate-200 bg-white p-6 text-center text-sm text-slate-500">
-        Недостаточно данных для расчёта винрейта
-      </div>
+      <Card className="flex h-full min-h-[180px] items-center justify-center p-6 text-center text-sm text-muted-foreground">
+        Недостаточно данных
+      </Card>
     );
   }
 
   const chartData = [
-    { name: 'Верные предсказания', value: data.correct, color: COLORS.correct },
-    { name: 'Неверные предсказания', value: data.incorrect, color: COLORS.incorrect },
+    { name: 'Верно', value: data.correct, color: COLORS.correct },
+    { name: 'Неверно', value: data.incorrect, color: COLORS.incorrect },
   ];
 
   return (
-    <div className="h-full overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-      <div className="border-b border-slate-100 bg-slate-50/50 px-5 py-4">
-        <h3 className="font-semibold text-slate-800">
-          Винрейт предсказаний
-        </h3>
-        <p className="mt-0.5 text-xs text-slate-500">
-          Позитив + рост или Негатив + падение = верно
-        </p>
-      </div>
-      <div className="flex items-center gap-6 p-5">
-        <div className="h-32 w-32 shrink-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={26}
-                outerRadius={40}
-                paddingAngle={2}
-                dataKey="value"
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={index} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value) => [value ?? 0, '']}
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 12,
-                  border: '1px solid #e2e8f0',
-                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-                }}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+    <Card className="h-full">
+      <CardHeader className="pb-3">
+        <div className="flex items-center gap-2">
+          <TrendingUp className="h-4 w-4 text-emerald-500" />
+          <CardTitle className="text-base">Винрейт</CardTitle>
         </div>
-        <div className="min-w-0 flex-1">
-          <div className="text-3xl font-bold text-slate-800">{data.percentage}%</div>
-          <p className="mt-1 text-sm text-slate-500">
-            {data.correct} из {data.total} совпадений
-          </p>
-          <div className="mt-3 space-y-2">
-            <div className="flex items-center gap-2">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: COLORS.correct }}
-              />
-              <span className="text-sm text-slate-600">Верно: {data.correct}</span>
+        <CardDescription>
+          Совпадение тональности с движением цены
+        </CardDescription>
+      </CardHeader>
+      <Separator />
+      <CardContent className="pt-4">
+        <div className="flex items-center gap-4">
+          <div className="h-28 w-28 shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie data={chartData} cx="50%" cy="50%" innerRadius={22} outerRadius={36} paddingAngle={3} dataKey="value">
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} fill={entry.color} strokeWidth={0} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(v) => [v ?? 0, '']}
+                  contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="space-y-2">
+            <div>
+              <span className="text-3xl font-bold tracking-tight">{data.percentage}%</span>
+              <p className="text-xs text-muted-foreground">{data.correct} из {data.total}</p>
             </div>
-            <div className="flex items-center gap-2">
-              <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: COLORS.incorrect }}
-              />
-              <span className="text-sm text-slate-600">Неверно: {data.incorrect}</span>
+            <div className="space-y-1.5">
+              {chartData.map((item) => (
+                <div key={item.name} className="flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                  <span className="text-xs text-muted-foreground">{item.name}: {item.value}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

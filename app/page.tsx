@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react';
 import { NewsPriceChart } from './components/NewsPriceChart';
 import { WinRateChart } from './components/WinRateChart';
 import { AuthHeader } from './components/AuthHeader';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Newspaper, Building2, Users, TrendingUp, TrendingDown, Minus, Rss } from 'lucide-react';
 
 type NewsItem = {
   id: number;
@@ -19,12 +26,21 @@ type NewsItem = {
 type Company = { id: number; name: string; ticker: string; sector: string };
 type User = { id: number; email: string; full_name: string; role: string };
 
+const sectorColors: Record<string, string> = {
+  'Финансы': 'bg-blue-50 text-blue-700',
+  'Энергетика': 'bg-yellow-50 text-yellow-700',
+  'Нефть и газ': 'bg-orange-50 text-orange-700',
+  'IT': 'bg-purple-50 text-purple-700',
+  'Металлургия': 'bg-zinc-100 text-zinc-700',
+  'Ритейл': 'bg-green-50 text-green-700',
+};
+
 export default function Home() {
   const [news, setNews] = useState<NewsItem[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filterCompany, setFilterCompany] = useState<string>('');
+  const [filterCompany, setFilterCompany] = useState<string>('all');
 
   useEffect(() => {
     Promise.all([
@@ -32,228 +48,232 @@ export default function Home() {
       fetch('/api/companies').then((r) => r.json()),
       fetch('/api/users').then((r) => r.json()),
     ])
-      .then(([newsData, companiesData, usersData]) => {
-        setNews(newsData);
-        setCompanies(companiesData);
-        setUsers(usersData);
-      })
+      .then(([n, c, u]) => { setNews(n); setCompanies(c); setUsers(u); })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
-    if (!filterCompany) return;
-    fetch(`/api/news?company_id=${filterCompany}`)
-      .then((r) => r.json())
-      .then(setNews)
-      .catch(console.error);
+    const url = filterCompany === 'all' ? '/api/news' : `/api/news?company_id=${filterCompany}`;
+    fetch(url).then((r) => r.json()).then(setNews).catch(console.error);
   }, [filterCompany]);
 
   const formatDate = (d: string) =>
-    new Date(d).toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  const sentimentLabel = (s: number | null) => {
-    if (s == null) return '—';
-    if (s > 0.5) return 'Позитив';
-    if (s < -0.3) return 'Негатив';
-    return 'Нейтрал';
+    new Date(d).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  const SentimentBadge = ({ s }: { s: number | null }) => {
+    if (s == null) return <Badge variant="secondary"><Minus className="h-3 w-3" /> Нейтрал</Badge>;
+    if (s > 0.5) return <Badge variant="success"><TrendingUp className="h-3 w-3 mr-1" />Позитив</Badge>;
+    if (s < -0.3) return <Badge variant="destructive"><TrendingDown className="h-3 w-3 mr-1" />Негатив</Badge>;
+    return <Badge variant="secondary"><Minus className="h-3 w-3 mr-1" />Нейтрал</Badge>;
   };
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
-          <p className="text-slate-600">Загрузка данных...</p>
+          <div className="h-9 w-9 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-muted-foreground">Загрузка данных...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100">
-      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Header */}
-        <header className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800 to-slate-900 px-6 py-8 text-white shadow-xl shadow-slate-900/10">
-          <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+    <div className="min-h-screen bg-background">
+      {/* Top Nav */}
+      <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+              <Rss className="h-4 w-4 text-primary-foreground" />
+            </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
-                Анализ финансовых новостей
-              </h1>
-              <p className="mt-2 text-slate-300">
-                Программное средство для автоматизации анализа финансовых новостей
-              </p>
-              <div className="mt-5 flex flex-wrap gap-6">
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-slate-600/50 px-2.5 py-0.5 text-sm font-medium">
-                    {users.length}
-                  </span>
-                  <span className="text-sm text-slate-400">пользователей</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-slate-600/50 px-2.5 py-0.5 text-sm font-medium">
-                    {companies.length}
-                  </span>
-                  <span className="text-sm text-slate-400">компаний</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="rounded-full bg-slate-600/50 px-2.5 py-0.5 text-sm font-medium">
-                    {news.length}
-                  </span>
-                  <span className="text-sm text-slate-400">новостей</span>
-                </div>
-              </div>
+              <p className="text-sm font-semibold leading-none">ФинАнализ</p>
+              <p className="text-[10px] text-muted-foreground">Анализ финансовых новостей</p>
             </div>
-            <AuthHeader />
           </div>
-        </header>
+          <AuthHeader />
+        </div>
+      </header>
 
-        {/* Toolbar + Win Rate */}
-        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-stretch">
-          <div className="flex flex-1 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <label className="text-sm font-semibold text-slate-700">
-              Фильтр по компании
-            </label>
-            <div className="flex flex-wrap items-center gap-3">
-              <select
-                value={filterCompany}
-                onChange={(e) => setFilterCompany(e.target.value)}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-medium text-slate-800 transition hover:border-slate-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-              >
-                <option value="">Все новости</option>
-                {companies.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} ({c.ticker})
-                  </option>
-                ))}
-              </select>
-              <a
-                href="/api/stock-prices?company_id=1"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-teal-600 hover:text-teal-700 hover:underline"
-              >
-                API котировок →
-              </a>
-            </div>
-          </div>
-          <div className="lg:w-80">
-            <WinRateChart />
-          </div>
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6">
+        {/* Hero stats */}
+        <div className="mb-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {[
+            { label: 'Новостей', value: news.length, icon: Newspaper, color: 'text-blue-500' },
+            { label: 'Компаний', value: companies.length, icon: Building2, color: 'text-purple-500' },
+            { label: 'Пользователей', value: users.length, icon: Users, color: 'text-emerald-500' },
+            { label: 'Источников', value: 5, icon: Rss, color: 'text-orange-500' },
+          ].map((stat) => (
+            <Card key={stat.label} className="overflow-hidden">
+              <CardContent className="flex items-center gap-4 p-5">
+                <div className={`rounded-xl bg-muted p-2.5`}>
+                  <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold tracking-tight">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
-        {/* News feed */}
-        <section>
-          <h2 className="mb-4 text-lg font-semibold text-slate-800">
-            Лента новостей
-          </h2>
-          <div className="space-y-5">
-            {news.map((item) => (
-              <article
-                key={item.id}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:shadow-md hover:border-slate-300/80"
-              >
-                <div className="p-6">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-lg font-semibold leading-snug text-slate-900">
-                        {item.title}
-                      </h3>
-                      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-slate-600">
-                        {item.content}
-                      </p>
-                      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                        <span className="font-medium text-slate-600">{item.source_name}</span>
-                        <span>{formatDate(item.published_at)}</span>
-                        {item.companies && (
-                          <span className="text-slate-400">• {item.companies}</span>
-                        )}
-                      </div>
-                    </div>
-                    <span
-                      className={`shrink-0 self-start rounded-full px-3 py-1.5 text-xs font-semibold ${
-                        (item.sentiment ?? 0) > 0.5
-                          ? 'bg-emerald-100 text-emerald-800'
-                          : (item.sentiment ?? 0) < -0.3
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {sentimentLabel(item.sentiment)}
-                    </span>
-                  </div>
-                  {(() => {
-                    const ids = Array.isArray(item.company_ids)
-                      ? item.company_ids
-                      : (item.company_ids || '')
-                          .toString()
-                          .split(',')
-                          .filter(Boolean)
-                          .map(Number);
-                    if (ids.length === 0) return null;
-                    return (
-                      <div className="mt-5 grid gap-4 border-t border-slate-100 pt-5 sm:grid-cols-2 lg:grid-cols-3">
-                        {ids.map((cid) => {
-                          const company = companies.find((c) => c.id === cid);
-                          if (!company) return null;
-                          return (
-                            <NewsPriceChart
-                              key={cid}
-                              companyId={company.id}
-                              companyName={company.name}
-                              ticker={company.ticker}
-                              newsPublishedAt={item.published_at}
-                            />
-                          );
-                        })}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Users section */}
-        <section className="mt-12 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 bg-slate-50/50 px-6 py-4">
-            <h2 className="text-lg font-semibold text-slate-800">
-              Пользователи системы
-            </h2>
-            <p className="mt-0.5 text-sm text-slate-500">
-              Роли: администратор, аналитик
-            </p>
-          </div>
-          <div className="grid gap-px bg-slate-100 sm:grid-cols-2 lg:grid-cols-3">
-            {users.map((u) => (
-              <div
-                key={u.id}
-                className="bg-white p-5 transition hover:bg-slate-50/50"
-              >
-                <p className="font-semibold text-slate-800">{u.full_name}</p>
-                <p className="mt-0.5 text-sm text-slate-500">{u.email}</p>
-                <span
-                  className={`mt-2 inline-block rounded-lg px-2.5 py-1 text-xs font-medium ${
-                    u.role === 'admin'
-                      ? 'bg-amber-100 text-amber-800'
-                      : 'bg-teal-100 text-teal-800'
-                  }`}
-                >
-                  {u.role}
-                </span>
+        {/* Main content grid */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+          {/* Left: News feed */}
+          <div>
+            {/* Filter bar */}
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <h2 className="flex items-center gap-2 text-lg font-semibold">
+                <Newspaper className="h-4 w-4" />
+                Лента новостей
+              </h2>
+              <div className="ml-auto flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">Фильтр:</span>
+                <Select value={filterCompany} onValueChange={setFilterCompany}>
+                  <SelectTrigger className="h-8 w-48 text-xs">
+                    <SelectValue placeholder="Все компании" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Все компании</SelectItem>
+                    {companies.map((c) => (
+                      <SelectItem key={c.id} value={String(c.id)}>
+                        {c.name} ({c.ticker})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            ))}
-          </div>
-        </section>
+            </div>
 
-        <footer className="mt-12 text-center text-sm text-slate-400">
-          API: /api/news · /api/companies · /api/stock-prices · /api/users · /api/sources
-        </footer>
+            {/* News cards */}
+            <div className="space-y-4">
+              {news.map((item) => {
+                const ids = Array.isArray(item.company_ids)
+                  ? item.company_ids
+                  : (item.company_ids || '').toString().split(',').filter(Boolean).map(Number);
+
+                return (
+                  <Card key={item.id} className="overflow-hidden transition-shadow hover:shadow-md">
+                    <CardContent className="p-0">
+                      {/* News header */}
+                      <div className="p-5 pb-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="text-base font-semibold leading-snug text-foreground">
+                              {item.title}
+                            </h3>
+                            <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                              {item.content}
+                            </p>
+                          </div>
+                          <div className="shrink-0">
+                            <SentimentBadge s={item.sentiment} />
+                          </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                          <span className="rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                            {item.source_name}
+                          </span>
+                          <span className="text-xs text-muted-foreground">{formatDate(item.published_at)}</span>
+                          {item.companies && (
+                            <span className="text-xs text-muted-foreground">
+                              • {item.companies}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {/* Charts */}
+                      {ids.length > 0 && (
+                        <>
+                          <Separator />
+                          <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-3">
+                            {ids.map((cid) => {
+                              const company = companies.find((c) => c.id === cid);
+                              if (!company) return null;
+                              return (
+                                <NewsPriceChart
+                                  key={cid}
+                                  companyId={company.id}
+                                  companyName={company.name}
+                                  ticker={company.ticker}
+                                  newsPublishedAt={item.published_at}
+                                />
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Right sidebar */}
+          <div className="space-y-6">
+            <WinRateChart />
+
+            {/* Companies */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-purple-500" />
+                  <CardTitle className="text-base">Компании</CardTitle>
+                </div>
+                <CardDescription>Отслеживаемые тикеры</CardDescription>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-4">
+                <div className="space-y-2">
+                  {companies.map((c) => (
+                    <div key={c.id} className="flex items-center justify-between rounded-lg px-2 py-1.5 transition hover:bg-muted/50">
+                      <div>
+                        <p className="text-sm font-medium">{c.name}</p>
+                        <p className="text-xs text-muted-foreground">{c.ticker}</p>
+                      </div>
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${sectorColors[c.sector] ?? 'bg-muted text-muted-foreground'}`}>
+                        {c.sector}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Users */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-emerald-500" />
+                  <CardTitle className="text-base">Пользователи</CardTitle>
+                </div>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-4">
+                <div className="space-y-3">
+                  {users.map((u) => (
+                    <div key={u.id} className="flex items-center gap-3">
+                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-bold uppercase text-muted-foreground">
+                        {u.full_name.charAt(0)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">{u.full_name}</p>
+                        <p className="truncate text-xs text-muted-foreground">{u.email}</p>
+                      </div>
+                      <Badge variant={u.role === 'admin' ? 'warning' : 'success'} className="shrink-0 text-[10px]">
+                        {u.role}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

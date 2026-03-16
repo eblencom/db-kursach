@@ -4,6 +4,13 @@ import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, Suspense } from 'react';
 import Link from 'next/link';
+import { Rss, LogIn, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 function LoginForm() {
   const router = useRouter();
@@ -20,11 +27,7 @@ function LoginForm() {
     setError('');
     setLoading(true);
     try {
-      const res = await signIn('credentials', {
-        email,
-        password,
-        redirect: false,
-      });
+      const res = await signIn('credentials', { email, password, redirect: false });
       if (res?.error) {
         setError('Неверный email или пароль');
         setLoading(false);
@@ -39,76 +42,90 @@ function LoginForm() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-50 to-slate-100 px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/50">
-          <div className="border-b border-slate-100 bg-slate-50/50 px-8 py-6">
-            <h1 className="text-2xl font-bold text-slate-800">Вход в аккаунт</h1>
-            <p className="mt-1 text-sm text-slate-500">
-              Введите данные для входа в систему
-            </p>
+    <div className="flex min-h-screen items-center justify-center bg-muted/30 px-4 py-12">
+      <div className="w-full max-w-[400px]">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center gap-3">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary shadow-lg">
+            <Rss className="h-6 w-6 text-primary-foreground" />
           </div>
-          <form onSubmit={handleSubmit} className="space-y-5 p-8">
-            <div>
-              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                placeholder="user@example.com"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 placeholder-slate-400 transition focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
-                Пароль
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-800 transition focus:border-teal-500 focus:bg-white focus:ring-2 focus:ring-teal-500/20"
-              />
-            </div>
+          <div className="text-center">
+            <h1 className="text-2xl font-bold tracking-tight">Добро пожаловать</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Войдите в систему анализа новостей</p>
+          </div>
+        </div>
+
+        <Card className="shadow-lg">
+          <CardHeader className="space-y-0 pb-4 pt-6 px-6">
             {registered && (
-              <div className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                Регистрация успешна. Войдите в аккаунт.
-              </div>
+              <Alert variant="success" className="mb-4">
+                <CheckCircle2 className="h-4 w-4" />
+                <AlertDescription>Регистрация прошла успешно. Войдите в аккаунт.</AlertDescription>
+              </Alert>
             )}
             {error && (
-              <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
-                {error}
-              </div>
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
             )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-teal-600 px-4 py-3 font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50 disabled:hover:bg-teal-600"
-            >
-              {loading ? 'Вход...' : 'Войти'}
-            </button>
-          </form>
-          <div className="space-y-3 border-t border-slate-100 px-8 py-8">
-            <p className="text-center text-sm text-slate-500">
+          </CardHeader>
+          <CardContent className="px-6 pb-6 space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" id="login-form">
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  placeholder="user@example.com"
+                  className="h-11"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="password">Пароль</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="h-11"
+                />
+              </div>
+            </form>
+            <Button type="submit" form="login-form" disabled={loading} className="h-11 w-full text-sm font-semibold">
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Вход...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <LogIn className="h-4 w-4" />
+                  Войти
+                </span>
+              )}
+            </Button>
+          </CardContent>
+          <Separator />
+          <CardFooter className="flex-col gap-3 px-6 py-5">
+            <p className="text-center text-sm text-muted-foreground">
               Нет аккаунта?{' '}
-              <Link href="/register" className="font-semibold text-teal-600 hover:text-teal-700">
+              <Link href="/register" className="font-semibold text-foreground hover:underline">
                 Зарегистрироваться
               </Link>
             </p>
-            <p className="text-center text-xs text-slate-400">
-              Демо: analyst@finance.ru / password123
-            </p>
-            <p className="text-center">
-              <Link href="/" className="text-sm text-slate-500 hover:text-slate-700">← На главную</Link>
-            </p>
-          </div>
-        </div>
+            <div className="rounded-lg bg-muted px-4 py-2 text-center text-xs text-muted-foreground">
+              Демо: <span className="font-medium">analyst@finance.ru</span> / <span className="font-medium">password123</span>
+            </div>
+            <Link href="/" className="text-xs text-muted-foreground hover:text-foreground hover:underline">
+              ← На главную
+            </Link>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );
@@ -116,13 +133,11 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-50">
-          <div className="h-10 w-10 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
-        </div>
-      }
-    >
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-muted/30">
+        <div className="h-9 w-9 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
+    }>
       <LoginForm />
     </Suspense>
   );

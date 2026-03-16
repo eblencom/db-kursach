@@ -2,22 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
 } from 'recharts';
+import { BarChart2 } from 'lucide-react';
 
-type PricePoint = {
-  date: string;
-  close: number;
-  label: string;
-  isNewsDay: boolean;
-};
+type PricePoint = { date: string; close: number; label: string; isNewsDay: boolean };
 
 type Props = {
   companyId: number;
@@ -32,19 +22,16 @@ export function NewsPriceChart({ companyId, companyName, ticker, newsPublishedAt
 
   useEffect(() => {
     const newsDate = new Date(newsPublishedAt);
-    const fromDate = new Date(newsDate);
-    fromDate.setDate(fromDate.getDate() - 2);
-    const toDate = new Date(newsDate);
-    toDate.setDate(toDate.getDate() + 3);
-
-    const fromStr = fromDate.toISOString().split('T')[0];
-    const toStr = toDate.toISOString().split('T')[0];
+    const from = new Date(newsDate); from.setDate(from.getDate() - 2);
+    const to = new Date(newsDate); to.setDate(to.getDate() + 3);
+    const fromStr = from.toISOString().split('T')[0];
+    const toStr = to.toISOString().split('T')[0];
 
     fetch(`/api/stock-prices?company_id=${companyId}&from=${fromStr}&to=${toStr}`)
       .then((r) => r.json())
       .then((prices: Array<{ date: string; close: number }>) => {
         const newsDateStr = newsDate.toISOString().split('T')[0];
-        const chartData = prices.map((p) => {
+        setData(prices.map((p) => {
           const d = typeof p.date === 'string' ? p.date.split('T')[0] : p.date;
           return {
             date: d,
@@ -52,88 +39,74 @@ export function NewsPriceChart({ companyId, companyName, ticker, newsPublishedAt
             label: new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' }),
             isNewsDay: d === newsDateStr,
           };
-        });
-        setData(chartData);
+        }));
       })
       .catch(() => setData([]))
       .finally(() => setLoading(false));
   }, [companyId, newsPublishedAt]);
 
   if (loading) {
-    return (
-      <div className="h-36 animate-pulse rounded-xl bg-slate-100" />
-    );
+    return <div className="h-40 animate-pulse rounded-xl bg-muted" />;
   }
 
   if (data.length === 0) {
     return (
-      <div className="flex h-36 items-center justify-center rounded-xl border border-slate-100 bg-slate-50/50 text-sm text-slate-500">
-        Нет данных о котировках
+      <div className="flex h-40 items-center justify-center rounded-xl border border-dashed text-sm text-muted-foreground">
+        Нет данных котировок
       </div>
     );
   }
 
   const minPrice = Math.min(...data.map((d) => d.close));
   const maxPrice = Math.max(...data.map((d) => d.close));
-  const padding = (maxPrice - minPrice) * 0.1 || 1;
+  const pad = (maxPrice - minPrice) * 0.12 || 1;
+  const newsDay = data.find((d) => d.isNewsDay)?.label;
+  const first = data[0]?.close;
+  const last = data[data.length - 1]?.close;
+  const isUp = last > first;
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        {companyName} ({ticker})
-      </p>
-      <p className="mb-2 text-[10px] text-slate-400">
-        Динамика цены 0–12 ч после новости
-      </p>
-      <div className="h-36">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 5, right: 5, left: 0, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fontSize: 10 }}
-              stroke="#94a3b8"
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              domain={[minPrice - padding, maxPrice + padding]}
-              tick={{ fontSize: 10 }}
-              stroke="#94a3b8"
-              axisLine={false}
-              tickLine={false}
-              tickFormatter={(v) => v.toFixed(0)}
-            />
-            <Tooltip
-              contentStyle={{
-                fontSize: 12,
-                borderRadius: 12,
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
-              }}
-              formatter={(value) => [typeof value === 'number' ? value.toFixed(2) : '—', 'Цена']}
-              labelFormatter={(label) => `Дата: ${label}`}
-            />
-            <ReferenceLine
-              x={data.find((d) => d.isNewsDay)?.label}
-              stroke="#0d9488"
-              strokeDasharray="4 4"
-              strokeWidth={1.5}
-            />
-            <Line
-              type="monotone"
-              dataKey="close"
-              stroke="#0d9488"
-              strokeWidth={2}
-              dot={{ r: 3, fill: '#0d9488', strokeWidth: 0 }}
-              activeDot={{ r: 5, fill: '#0d9488', stroke: '#fff', strokeWidth: 2 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+    <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
+      <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <BarChart2 className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs font-semibold text-foreground">{companyName}</span>
+          <span className="text-[10px] text-muted-foreground">({ticker})</span>
+        </div>
+        <span className={`text-xs font-semibold ${isUp ? 'text-emerald-600' : 'text-rose-500'}`}>
+          {isUp ? '▲' : '▼'} {Math.abs(((last - first) / first) * 100).toFixed(2)}%
+        </span>
       </div>
-      <p className="mt-2 text-[10px] text-slate-400">
-        Пунктир — день выхода новости
-      </p>
+      <div className="p-3 pt-4">
+        <div className="h-32">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={data} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+              <XAxis dataKey="label" tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} />
+              <YAxis domain={[minPrice - pad, maxPrice + pad]} tick={{ fontSize: 9 }} stroke="hsl(var(--muted-foreground))" axisLine={false} tickLine={false} tickFormatter={(v) => v.toFixed(0)} />
+              <Tooltip
+                contentStyle={{ fontSize: 12, borderRadius: 10, border: '1px solid hsl(var(--border))', boxShadow: '0 4px 12px rgb(0 0 0 / 0.08)' }}
+                formatter={(value) => [typeof value === 'number' ? value.toFixed(2) : '—', 'Цена']}
+                labelFormatter={(l) => `Дата: ${l}`}
+              />
+              {newsDay && (
+                <ReferenceLine x={newsDay} stroke="#f59e0b" strokeDasharray="4 3" strokeWidth={1.5} label={{ value: 'новость', position: 'top', fontSize: 9, fill: '#f59e0b' }} />
+              )}
+              <Line
+                type="monotone"
+                dataKey="close"
+                stroke={isUp ? '#10b981' : '#f43f5e'}
+                strokeWidth={2}
+                dot={{ r: 2.5, fill: isUp ? '#10b981' : '#f43f5e', strokeWidth: 0 }}
+                activeDot={{ r: 4, strokeWidth: 2, stroke: '#fff' }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        <p className="mt-1.5 text-[10px] text-muted-foreground">
+          Жёлтый пунктир — день выхода новости
+        </p>
+      </div>
     </div>
   );
 }
