@@ -1,9 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { NewsPriceChart } from './components/NewsPriceChart';
 import { WinRateChart } from './components/WinRateChart';
 import { AuthHeader } from './components/AuthHeader';
+import { AdminPanel } from './components/AdminPanel';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -36,6 +38,9 @@ const sectorColors: Record<string, string> = {
 };
 
 export default function Home() {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as { role?: string })?.role === 'admin';
+
   const [news, setNews] = useState<NewsItem[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [users, setUsers] = useState<User[]>([]);
@@ -274,6 +279,29 @@ export default function Home() {
             </Card>
           </div>
         </div>
+
+        {/* Admin Panel */}
+        {isAdmin && (
+          <div className="mt-10">
+            <AdminPanel
+              users={users}
+              news={news.map((n) => ({
+                id: n.id,
+                title: n.title,
+                source_name: n.source_name,
+                published_at: n.published_at,
+                sentiment: n.sentiment,
+              }))}
+              currentUserId={(session?.user as { id?: string })?.id}
+              onUsersChange={setUsers}
+              onNewsChange={(updated) =>
+                setNews((prev) =>
+                  prev.filter((n) => updated.some((u) => u.id === n.id))
+                )
+              }
+            />
+          </div>
+        )}
       </div>
     </div>
   );
