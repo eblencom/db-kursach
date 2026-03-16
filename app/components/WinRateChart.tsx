@@ -3,9 +3,7 @@
 import { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { TrendingUp } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
 
 type WinRateData = {
   correct: number;
@@ -29,12 +27,12 @@ export function WinRateChart() {
   }, []);
 
   if (loading) {
-    return <Card className="h-full min-h-[180px] animate-pulse" />;
+    return <Card className="h-24 animate-pulse" />;
   }
 
   if (!data || data.total === 0) {
     return (
-      <Card className="flex h-full min-h-[180px] items-center justify-center p-6 text-center text-sm text-muted-foreground">
+      <Card className="flex items-center justify-center p-4 text-sm text-muted-foreground">
         Недостаточно данных
       </Card>
     );
@@ -46,47 +44,37 @@ export function WinRateChart() {
   ];
 
   return (
-    <Card className="h-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <TrendingUp className="h-4 w-4 text-emerald-500" />
-          <CardTitle className="text-base">Винрейт</CardTitle>
+    <Card>
+      <CardContent className="flex items-center gap-4 p-4">
+        <div className="h-16 w-16 shrink-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={chartData} cx="50%" cy="50%" innerRadius={16} outerRadius={26} paddingAngle={3} dataKey="value">
+                {chartData.map((entry, i) => (
+                  <Cell key={i} fill={entry.color} strokeWidth={0} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(v) => [v ?? 0, '']}
+                contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))' }}
+              />
+            </PieChart>
+          </ResponsiveContainer>
         </div>
-        <CardDescription>
-          Совпадение тональности с движением цены
-        </CardDescription>
-      </CardHeader>
-      <Separator />
-      <CardContent className="pt-4">
-        <div className="flex items-center gap-4">
-          <div className="h-28 w-28 shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie data={chartData} cx="50%" cy="50%" innerRadius={22} outerRadius={36} paddingAngle={3} dataKey="value">
-                  {chartData.map((entry, i) => (
-                    <Cell key={i} fill={entry.color} strokeWidth={0} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(v) => [v ?? 0, '']}
-                  contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid hsl(var(--border))', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+        <div className="flex-1">
+          <div className="flex items-baseline gap-2">
+            <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+            <span className="text-sm font-semibold text-muted-foreground">Винрейт</span>
+            <span className="ml-auto text-2xl font-bold tracking-tight">{data.percentage}%</span>
           </div>
-          <div className="space-y-2">
-            <div>
-              <span className="text-3xl font-bold tracking-tight">{data.percentage}%</span>
-              <p className="text-xs text-muted-foreground">{data.correct} из {data.total}</p>
-            </div>
-            <div className="space-y-1.5">
-              {chartData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-xs text-muted-foreground">{item.name}: {item.value}</span>
-                </div>
-              ))}
-            </div>
+          <p className="mt-0.5 text-xs text-muted-foreground">{data.correct} из {data.total} совпадений</p>
+          <div className="mt-1.5 flex gap-3">
+            {chartData.map((item) => (
+              <div key={item.name} className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-[11px] text-muted-foreground">{item.name}: {item.value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </CardContent>
