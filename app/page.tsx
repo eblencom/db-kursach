@@ -220,8 +220,6 @@ export default function Home() {
 
           {/* Right sidebar */}
           <div className="space-y-6">
-            <WinRateChart />
-
             {/* Companies */}
             <Card>
               <CardHeader className="pb-3">
@@ -277,6 +275,8 @@ export default function Home() {
                 </div>
               </CardContent>
             </Card>
+
+            <WinRateChart />
           </div>
         </div>
 

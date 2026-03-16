@@ -24,12 +24,14 @@ async function getUserByEmail(email: string): Promise<{
   full_name: string;
   role: string;
 } | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+
   if (!USE_MOCK) {
     try {
       const pool = await getDb();
       const result = await pool
         .request()
-        .input('email', sql.NVarChar(255), email.trim().toLowerCase())
+        .input('email', sql.NVarChar(255), normalizedEmail)
         .query(
           `SELECT u.id, u.email, u.password_hash, u.full_name, r.name as role
            FROM Users u
@@ -37,31 +39,29 @@ async function getUserByEmail(email: string): Promise<{
            WHERE u.email = @email`
         );
       const rows = result.recordset as Record<string, unknown>[];
-      if (rows.length === 0) return null;
-      const row = rows[0];
-      return {
-        id: row.id as number,
-        email: row.email as string,
-        password_hash: row.password_hash as string,
-        full_name: row.full_name as string,
-        role: row.role as string,
-      };
-    } catch {
+      if (rows.length > 0) {
+        const row = rows[0];
+        return {
+          id: row.id as number,
+          email: row.email as string,
+          password_hash: row.password_hash as string,
+          full_name: row.full_name as string,
+          role: row.role as string,
+        };
+      }
+      // email not found in DB — not in mock either
       return null;
+    } catch (err) {
+      // DB unreachable — fall through to mock
+      console.warn('DB unavailable, falling back to mock users:', (err as Error).message);
     }
   }
 
-  const fromStatic = mockUsers.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  const fromStatic = mockUsers.find((u) => u.email.toLowerCase() === normalizedEmail);
   if (fromStatic) {
-    return {
-      ...fromStatic,
-      password_hash: DEMO_PASSWORD_HASH,
-    };
+    return { ...fromStatic, password_hash: DEMO_PASSWORD_HASH };
   }
-  const fromRegistered = mockRegisteredUsers.find(
-    (u) => u.email.toLowerCase() === email.toLowerCase()
-  );
-  return fromRegistered || null;
+  return mockRegisteredUsers.find((u) => u.email.toLowerCase() === normalizedEmail) || null;
 }
 
 export async function registerUser(
